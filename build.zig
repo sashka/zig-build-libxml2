@@ -2,6 +2,7 @@ const std = @import("std");
 
 pub fn build(b: *std.Build) !void {
     const target = b.standardTargetOptions(.{});
+    const target_is_windows = target.result.os.tag == .windows;
     const optimize = b.standardOptimizeOption(.{});
 
     const lib = b.addStaticLibrary(.{
@@ -11,13 +12,13 @@ pub fn build(b: *std.Build) !void {
     });
     lib.linkLibC();
 
-    lib.addIncludePath(.{ .path = "upstream/include" });
-    lib.addIncludePath(.{ .path = "override/include" });
-    if (target.isWindows()) {
-        lib.addIncludePath(.{ .path = "override/config/win32" });
+    lib.addIncludePath(b.path("upstream/include"));
+    lib.addIncludePath(b.path("override/include"));
+    if (target_is_windows) {
+        lib.addIncludePath(b.path("override/config/win32"));
         lib.linkSystemLibrary("ws2_32");
     } else {
-        lib.addIncludePath(.{ .path = "override/config/posix" });
+        lib.addIncludePath(b.path("override/config/posix"));
     }
 
     var flags = std.ArrayList([]const u8).init(b.allocator);
@@ -40,7 +41,7 @@ pub fn build(b: *std.Build) !void {
         "-DLIBXML_AUTOMATA_ENABLED=1",
         "-DWITHOUT_TRIO=1",
     });
-    if (!target.isWindows()) {
+    if (!target_is_windows) {
         try flags.appendSlice(&.{
             "-DHAVE_ARPA_INET_H=1",
             "-DHAVE_ARPA_NAMESER_H=1",
@@ -92,9 +93,9 @@ pub fn build(b: *std.Build) !void {
         }
     }
 
-    lib.addCSourceFiles(srcs, flags.items);
-    lib.installHeader("override/include/libxml/xmlversion.h", "libxml/xmlversion.h");
-    lib.installHeadersDirectory("upstream/include/libxml", "libxml");
+    lib.addCSourceFiles(.{ .files = srcs, .flags = flags.items });
+    lib.installHeader(b.path("override/include/libxml/xmlversion.h"), "libxml/xmlversion.h");
+    lib.installHeadersDirectory(b.path("upstream/include/libxml"), "libxml", .{});
 
     b.installArtifact(lib);
 }

@@ -1,0 +1,6 @@
+.{
+    .name = "libxml2",
+    .minimum_zig_version = "0.14.0-dev.39+1b728e183",
+    .paths = .{""},
+    .version = "0.0.0",
+}
